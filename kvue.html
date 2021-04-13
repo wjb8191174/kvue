@@ -7,17 +7,19 @@
     <title>Document</title>
 </head>
 <body>
-    <div id="#app"></div>
+    <div id="#app">{{counter}}</div>
 </body>
-<script src="./kvue.js"></script>
+<script src="kvue.js"></script>
 <script>
-    const app = new Vue({
+    const app = new KVue({
         id: "#app",
-        data() {
-            return {
-                counter: 1
-            }
+        data: {
+            counter: 1
         },
     })
+
+    setInterval(() => {
+        app.counter++
+    }, 1000);
 </script>
 </html>
