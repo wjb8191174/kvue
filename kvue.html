@@ -7,14 +7,19 @@
     <title>Document</title>
 </head>
 <body>
-    <div id="#app">{{counter}}</div>
+    <div id="app">
+        <p>{{counter}}</p>
+        <p k-text='counter'></p>
+        <p k-html='desc'></p>
+    </div>
 </body>
 <script src="kvue.js"></script>
 <script>
     const app = new KVue({
         id: "#app",
         data: {
-            counter: 1
+            counter: 1,
+            desc: 'kvue<span style="color:red">真好</span>'
         },
     })
 
