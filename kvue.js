@@ -3,10 +3,13 @@ function defineReaction(obj, key, val) {
     // val 可能是对象 需要递归调用
     observer(val)
 
+    const dep = new Dep()
+
     Object.defineProperty(obj, key, 
         {
             get() {
                 // console.log('get', val);
+                Dep.target && dep.addDep(Dep.target)
                 return val
             },
             set(newVal) {
@@ -15,6 +18,8 @@ function defineReaction(obj, key, val) {
                     // newVal 可能对象 需要递归调用
                     observer(newVal)
                     val = newVal
+
+                    dep.notify()
                 }
             }
         }    
@@ -81,7 +86,9 @@ class Observer {
     }
 }
 
-// 编译过程
+/**
+ * 
+ */
 class Compile {
     constructor(el, vm) {
         this.$vm = vm
@@ -107,7 +114,7 @@ class Compile {
             }
 
             // 递归 遍历所有子节点
-            if(node.childNodes) {
+            if (node.childNodes) {
                 this.compile(node)
             }
         }) 
@@ -116,7 +123,8 @@ class Compile {
     // 编译插值文本
     compileText(node) {
         // console.log(RegExp.$1);
-        node.textContent = this.$vm[RegExp.$1]
+        // node.textContent = this.$vm[RegExp.$1]
+        this.update(node, RegExp.$1, 'text')
     }
 
     // 编译元素
@@ -135,35 +143,123 @@ class Compile {
         })
     }
 
-    /** ********************************************
-     * 指令相关的方法
+
+    /**
+     * k-text指令对应方法
      * @param {*} node 
      * @param {*} exp 
      */
-
-    text(node, exp) {
-        node.textContent = this.$vm[exp]
+    text(node, exp) { 
+        this.update(node, exp, 'text')
     }
 
+
+    /**
+     * k-html指令对应方法
+     * @param {*} node 
+     * @param {*} exp 
+     */
     html(node, exp) {
-        node.innerHTML = this.$vm[exp]
+        this.update(node, exp, 'html')
     }  
 
-    /** ****************** end ******************** */
-    
 
-    // 判断节点是否是元素
+    /**
+     * 
+     * @param {*} node 
+     * @param {*} exp 
+     * @param {*} dir 
+     */    
+    update(node, exp, dir) {
+        // 初始化
+        const fn = this[dir + 'Updater'];
+        fn && fn(node, this.$vm[exp])
+
+        new Watcher(this.$vm, exp, function(val) {
+            fn && fn(node, val)
+        })
+    }
+
+
+    /**
+     * 
+     * @param {*} node 
+     * @param {*} val 
+     */
+    textUpdater(node, val) {
+        node.textContent = val
+    }
+
+
+    /**
+     * 
+     * @param {*} node 
+     * @param {*} val 
+     */
+    htmlUpdater(node, val) {
+        node.innerHTML = val
+    }
+
+
+    /**
+     * 
+     * @param {*} node 
+     * @returns boolean
+     */
     isElement(node) {
         return node.nodeType === 1
     }
 
-    // 判断是否是插值表达式{{xx}} 
+
+    /**
+     * 
+     * @param {*} node 
+     * @returns boolean
+     */
     isInter(node) {
         return node.nodeType === 3 && /\{\{(.*)\}\}/.test(node.textContent)
     }
 
-    // 判断是否是指令
+
+    /**
+     * 
+     * @param {*} attrName 
+     * @returns boolean
+     */
     isDirective(attrName) {
         return attrName.indexOf('k-') === 0
+    }
+}
+
+
+// Watcher: 小秘书，界面中的一个依赖对应一个小秘书
+class Watcher {
+    constructor(vm, key, updateFn) {
+        this.vm = vm
+        this.key = key
+        this.updateFn = updateFn
+
+        // 读一次数据，触发defineReactive里面的get()
+        Dep.target = this
+        this.vm[this.key]
+        Dep.target = null
+    }
+
+    update() {
+        this.updateFn.call(this.vm, this.vm[this.key])
+    }
+}
+
+class Dep {
+    constructor() {
+        this.deps = []
+    }
+
+    addDep(watcher) {
+        this.deps.push(watcher)
+    }
+
+    notify() {
+        this.deps.forEach(watcher => watcher.update())
     }
 }
