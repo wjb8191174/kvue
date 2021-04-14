@@ -8,9 +8,10 @@
 </head>
 <body>
     <div id="app">
-        <p>{{counter}}</p>
+        <p @click="addCounter">{{counter}}</p>
         <p k-text='counter'></p>
         <p k-html='desc'></p>
+        <button @click="showMsg">Message</button>
     </div>
 </body>
 <script src="kvue.js"></script>
@@ -21,10 +22,19 @@
             counter: 1,
             desc: 'kvue<span style="color:red">真好</span>'
         },
+        methods: {
+            addCounter() {
+                this.counter++;
+                // alert("处理点击事件成功")
+            },
+            showMsg() {
+                alert('你好Kvue')
+            }
+        },
     })
 
-    setInterval(() => {
-        app.counter++
-    }, 1000);
+    // setInterval(() => {
+    //     app.counter++
+    // }, 1000);
 </script>
 </html>

@@ -49,6 +49,14 @@ function proxy(vm) {
             }
         )
     })
+
+    Object.keys(vm.$methods).forEach(key => {
+        Object.defineProperty(vm, key, {
+            get() {
+                return vm.$methods[key]
+            }
+        })
+    }) 
 }
 
 class KVue {
@@ -57,6 +65,8 @@ class KVue {
         this.$options = options
 
         this.$data = options.data
+
+        this.$methods = options.methods
 
         // 给KVue传递进来的参数做响应式处理
         observer(this.$data)
@@ -79,7 +89,7 @@ class Observer {
     }
 
     // 判断KVue的$data是对象还是数组
-    // todo 处理数据类型
+    // todo 处理数组类型
     walk(obj) {
         Object.keys(obj).forEach(key => 
             defineReaction(obj, key, obj[key]))
@@ -87,7 +97,7 @@ class Observer {
 }
 
 /**
- * 
+ * 编译过程
  */
 class Compile {
     constructor(el, vm) {
@@ -134,15 +144,29 @@ class Compile {
             // k-xxx="aaa"
             const attrName = attr.name
             const exp = attr.value
-
+            // console.log(attrName);
             if(this.isDirective(attrName)) {
                 // 截取字符窜 获取指令相对应的方法
                 const dir = attrName.substring(2)
                 this[dir] && this[dir](node, exp)
+
+            } else if (attrName.startsWith('@')) { // 处理点击事件
+                const eventName = attrName.substring(1)
+                this.handleEvent(node, exp, eventName)
             }
         })
     }
-
+    
+    /**
+     * 处理事件
+     * @param {*} node 
+     * @param {*} exp KVue实例上的定义的事件方法
+     * @param {*} eventName 事件名
+     */
+    handleEvent(node, exp, eventName) {
+        const fnc = this.$vm[exp]
+        node.addEventListener(eventName, fnc.bind(this.$vm), false)
+    }
 
     /**
      * k-text指令对应方法
@@ -165,6 +189,7 @@ class Compile {
 
 
     /**
+     * 初始化展示数据
      * 
      * @param {*} node 
      * @param {*} exp 
